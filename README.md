@@ -1,2 +1,2 @@
-# panquequinha-studio
-Panquequinha studio is a python photo effect app that runs on terminal
+# Pancake studio
+Paancake studio is a python photo effect app that runs on terminal
