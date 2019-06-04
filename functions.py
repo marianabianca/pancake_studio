@@ -3,6 +3,7 @@ import numpy as np
 import random
 import os.path, time
 from blend_modes import soft_light as sfl
+from blend_modes import overlay as ovl
 
 
 # Applies grain effect to image
@@ -127,7 +128,7 @@ def get_img_date(path):
     else:
         date = time.strftime(
                 '%Y/%m/%d',
-                time.gmtime(os.path.getmtime('cat.jpg'))
+                time.gmtime(os.path.getmtime(path))
                 )
     year = str(date[2:4])
     month = str(date[5:7])
