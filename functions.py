@@ -1,6 +1,7 @@
-from PIL import Image, ExifTags, ImageFont, ImageDraw
+from PIL import Image, ExifTags, ImageFont, ImageDraw, ImageFilter
 import numpy as np
 import random
+import os.path, time
 from blend_modes import soft_light as sfl
 
 
@@ -103,15 +104,12 @@ def soft_light(background, overlay, opacity):
 	return final_img
 
 
-def size(img):
-	img_arr = np.array(img)
-	height = len(img_arr)
-	width = len(img_arr[0])
-	return (height, width)
-
-
 def get_exif(im):
-    im_exif = im._getexif().items()
+    try:
+        im_exif = im._getexif().items()
+    except:
+        return False
+
     exif = {}
     
     for (tag, value) in im_exif:
@@ -121,30 +119,34 @@ def get_exif(im):
     return exif
 
 
-def get_img_date(im):
+def get_img_date(path):
+    im = Image.open(path)
     exif = get_exif(im)
-    date = exif['DateTime'].split(' ')[0]
+    if exif:
+        date = exif['DateTime'].split(' ')[0]
+    else:
+        date = time.strftime(
+                '%Y/%m/%d',
+                time.gmtime(os.path.getmtime('cat.jpg'))
+                )
     year = str(date[2:4])
     month = str(date[5:7])
     day = str(date[8:10])
+
+
     return {'day': day, 'month': month, 'year': year}
 
 
 def write_on_img(im, text, font, size, position, color):
-    draw = ImageDraw.Draw(im)
+    copy_im = im.copy()
+    draw = ImageDraw.Draw(copy_im)
     font = ImageFont.truetype(font, size)
     draw.text(position, text, color, font=font)
-    return im
+    return copy_im
 
 
 def blank_img(size, color):
     im = Image.new('RGBA', size, color)
-    return im
-
-
-def black_img(size):
-    color = (0, 0, 0, 255)
-    im = blank_img(size, color)
     return im
 
 
@@ -158,13 +160,27 @@ def brazilian_date_format(date):
     text = date['day'] + ' ' + date['month'] + " '" + date['year']
     return text
 
-def write_date_img_black(im):
-    size = im.size
-    black_im = black_img(size)
-    date = get_img_date(im)
-    text = brazilian_date_format(date)
-    font_color = (255, 255, 255)
-    position = (0, 0)
-    write_on_img(black_im, text, 'digital-7.ttf', 50, position, font_color)
-    return black_im
 
+def write_br_date(im, date):
+    font_color = (255, 122, 56)
+    h, w = im.size[0], im.size[1]
+    size = int(h/25)
+    x, y = int(h - h/25 - size*5), int(w - w/25 - size)
+    position = (x, y)
+    im_date = write_on_img(im, date, 'digital-7.ttf', size, position, font_color)
+    im_date = im_date.filter(ImageFilter.GaussianBlur(3))
+    im_date = write_on_img(im_date, date, 'digital-7.ttf', size, position, font_color)
+    return im_date
+
+
+def date_overlay(path):
+    im = Image.open(path)
+    size = im.size
+    t_im = transparent_img(size)
+    date = get_img_date(path)
+    str_date = brazilian_date_format(date)
+    date_overlay = write_br_date(t_im, str_date)
+    im = im.convert('RGBA')
+    final = soft_light(im, date_overlay, 1)
+    
+    return final
